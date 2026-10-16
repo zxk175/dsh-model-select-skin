@@ -1,0 +1,7 @@
+# 模型选择皮肤的 bundle 补丁。
+#
+# 一行 Host 记录：Host 端只承载 bundle 身份（功能全部在 Client 侧），
+# 所以它的 `apply` 故意留空。
+- insert:
+    - id: model-select-skin
+      name: '@local/dsh-model-select-skin'

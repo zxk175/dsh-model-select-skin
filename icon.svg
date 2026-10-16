@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Model Select Skin">
+  <title>Model Select Skin</title>
+  <defs>
+    <linearGradient id="mss-g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4d6bfe"/>
+      <stop offset="1" stop-color="#12b981"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="18" width="56" height="28" rx="14" fill="none" stroke="url(#mss-g)" stroke-width="3.5"/>
+  <circle cx="19" cy="32" r="5" fill="#4d6bfe"/>
+  <rect x="29" y="28" width="14" height="3.5" rx="1.75" fill="#8a93a8"/>
+  <rect x="29" y="35" width="9" height="3.5" rx="1.75" fill="#c2c8d6"/>
+  <path d="M47 29.5 51.5 34 47 38.5" fill="none" stroke="#12b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
