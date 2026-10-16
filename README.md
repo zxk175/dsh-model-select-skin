@@ -51,6 +51,8 @@ ln -s /path/to/dsh-model-select-skin ~/.dsh/profiles/web/node_modules/@local/dsh
 
 ## 关于截图
 
-`docs/preview-*.png` 由 `docs/build-preview.py` 生成：它读取 `client.js` 里的
-真实 CSS 与 DSH 主题的真实 token，渲染成静态页面后截图，因此图中的样式与实际
-插件一致（模型名与提供商名为示意数据）。
+上方两张图是**真实运行中的 DSH Web GUI 截图**（由 `docs/capture-screenshot.mjs`
+驱动无头 Chrome 抓取），不是示意图。
+
+脚本通过 CDP 注入一个本地自签的浏览器 cookie 来访问 `127.0.0.1:3080`，
+随后展开模型下拉并裁剪到菜单区域。用法与前置条件见脚本头部注释。
