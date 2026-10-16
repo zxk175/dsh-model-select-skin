@@ -199,9 +199,9 @@ window.__ModuleLoader__.load({
   position: sticky; top: 0; z-index: 1;
   display: flex; align-items: center; gap: 6px;
   padding: 6px 8px 4px;
-  /* 分组标题用不透明实心底：sticky 悬停时滚过的行不会从它下面透出来，
-     分组之间的边界也比半透明表面更清楚。 */
-  background: var(--dsw-alias-bg-overlay);
+  /* 分组标题用官方专用的不透明实心底：sticky 悬停时滚过的行不会从它下面
+     透出来，分组之间的边界也比半透明表面清楚。 */
+  background: var(--dsw-alias-menu-group-header-fill, var(--dsw-alias-bg-overlay));
   border-top: 1px solid var(--dsw-alias-border-l1);
   color: var(--dsw-alias-label-tertiary);
   font-size: 11px; line-height: 16px;

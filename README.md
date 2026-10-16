@@ -2,6 +2,16 @@
 
 给 DeepSeek Harness Web UI 的模型选择器换皮肤：胶囊芯片触发器 + 重做的下拉菜单。
 
+## 截图
+
+浅色主题：
+
+![浅色主题下的模型选择器](docs/preview-light.png)
+
+深色主题：
+
+![深色主题下的模型选择器](docs/preview-dark.png)
+
 ## 效果
 
 - **触发器**：胶囊芯片，含提供商彩点、`提供商 · 模型名`、思考档位标签
@@ -26,6 +36,7 @@ ln -s /path/to/dsh-model-select-skin ~/.dsh/profiles/web/node_modules/@local/dsh
 | `cordis.patch.yml` | bundle 补丁，插入插件行 |
 | `locale/` | 中英文案 |
 | `icon.svg` | 插件图标 |
+| `docs/` | 界面截图及其生成脚本 |
 
 ## 原理
 
@@ -37,3 +48,9 @@ ln -s /path/to/dsh-model-select-skin ~/.dsh/profiles/web/node_modules/@local/dsh
 官方的 `session/selectModel` 链路。因此在任何位置做的切换都处处可见。
 
 禁用或卸载本插件即可恢复官方 UI。
+
+## 关于截图
+
+`docs/preview-*.png` 由 `docs/build-preview.py` 生成：它读取 `client.js` 里的
+真实 CSS 与 DSH 主题的真实 token，渲染成静态页面后截图，因此图中的样式与实际
+插件一致（模型名与提供商名为示意数据）。
