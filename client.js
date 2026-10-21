@@ -451,6 +451,8 @@ window.__ModuleLoader__.load({
       const [pos, setPos] = useState(null)
       // 已收起的分组 id。只影响渲染，不影响目录数据；搜索时自动全展开。
       const [collapsed, setCollapsed] = useState(() => new Set())
+      // 展开某个分组后，需要把该组第一条行滚动到可见位置；滚动完清空。
+      const [scrollTarget, setScrollTarget] = useState(null)
 
       const rootRef = useRef(null)
       const triggerRef = useRef(null)
@@ -531,12 +533,16 @@ window.__ModuleLoader__.load({
       const allCollapsed = visible.length > 0 && !anyExpanded
 
       const toggleGroup = (groupId) => {
+        // 当前是收起的，点击后就是展开。
+        const willExpand = collapsed.has(groupId)
         setCollapsed((prev) => {
           const next = new Set(prev)
           if (next.has(groupId)) next.delete(groupId)
           else next.add(groupId)
           return next
         })
+        // 展开某个分组时，滚动到它的第一条模型行，省得用户自己翻。
+        if (willExpand) setScrollTarget(groupId)
       }
 
       const toggleAll = () => {
@@ -689,6 +695,23 @@ window.__ModuleLoader__.load({
         centeredRef.current = true
       })
 
+      // 展开某个分组后，把它的第一条行滚到滚动容器顶部。
+      // 分组标题是 sticky，会贴在顶部，第一条行正好在它下方。
+      useLayoutEffect(() => {
+        if (scrollTarget === null) return
+        const scroller = scrollRef.current
+        if (scroller === null) return
+        const groupEl = [...scroller.children].find(el => el.dataset?.group === scrollTarget)
+        if (groupEl === undefined) return
+        const row = groupEl.querySelector('.mss-row')
+        if (row === null) return
+        const view = scroller.getBoundingClientRect()
+        const box = row.getBoundingClientRect()
+        const topInContent = scroller.scrollTop + (box.top - view.top - scroller.clientTop)
+        scroller.scrollTop = Math.max(0, topInContent - 4)
+        setScrollTarget(null)
+      }, [scrollTarget])
+
       // 临时的失败提示会自己消失。
       useEffect(() => {
         if (toast === null) return undefined
@@ -795,7 +818,7 @@ window.__ModuleLoader__.load({
             onClick: () => { choose({ group, model }) },
           }, copy, h('span', { className: 'mss-check' }, marker))
         })
-        return h('div', { key: group.id },
+        return h('div', { key: group.id, 'data-group': group.id },
           h('button', {
             type: 'button',
             className: 'mss-group',
