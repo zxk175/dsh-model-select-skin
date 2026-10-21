@@ -195,6 +195,14 @@ window.__ModuleLoader__.load({
   /* 官方的"实心品牌填充上的前景色"token：在两个主题下都是 brand-primary 的精确补色。 */
   color: var(--dsw-alias-label-primary-foreground);
 }
+/* 悬浮到已选中的芯片时，.mss-chip:hover:not(:disabled) 的特异性高于
+   [data-on]，背景会被换成中性 hover 色，但文字仍是 brand-primary 的
+   补色——深色主题下就变成深底深字。悬浮时改用官方的实心 hover 底色，
+   并把文字反转成品牌色，两个主题下都清晰。 */
+.mss-chip[data-on]:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover-solid, var(--dsw-alias-interactive-bg-hover));
+  color: var(--dsw-alias-brand-primary);
+}
 .mss-chip:disabled { color: var(--dsw-alias-label-dimmed); cursor: default; }
 .mss-search { display: flex; align-items: center; gap: 6px; margin: 2px 0 4px; }
 .mss-search input {
