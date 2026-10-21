@@ -189,6 +189,12 @@ window.__ModuleLoader__.load({
   font-size: 12px; line-height: 18px; cursor: pointer;
 }
 .mss-chip:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); }
+/* 未选中芯片悬浮时把文字提到主文字色：默认的 label-secondary 在深色
+   主题下是浅灰，配上微亮的 hover 背景仍然发飘。 */
+.mss-chip:not([data-on]):hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover-solid, var(--dsw-alias-interactive-bg-hover));
+  color: var(--dsw-alias-label-primary);
+}
 .mss-chip[data-on] {
   border-color: transparent;
   background: var(--dsw-alias-brand-primary);
