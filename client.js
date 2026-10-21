@@ -46,6 +46,10 @@ window.__ModuleLoader__.load({
         actionError: '操作未完成：{message}',
         sessionInUse: '该会话正被另一个写入方占用，请稍后重试',
         providerAccount: 'DeepSeek 账号',
+        collapseGroup: '收起分组',
+        expandGroup: '展开分组',
+        collapseAll: '全部收起',
+        expandAll: '全部展开',
       },
       en: {
         triggerFallback: 'Select model',
@@ -63,6 +67,10 @@ window.__ModuleLoader__.load({
         actionError: 'Action did not complete: {message}',
         sessionInUse: 'This session is held by another writer; try again shortly',
         providerAccount: 'DeepSeek account',
+        collapseGroup: 'Collapse group',
+        expandGroup: 'Expand group',
+        collapseAll: 'Collapse all',
+        expandAll: 'Expand all',
       },
     }
 
@@ -197,16 +205,38 @@ window.__ModuleLoader__.load({
 .mss-scroll { min-height: 0; overflow-y: auto; }
 .mss-group {
   position: sticky; top: 0; z-index: 1;
+  box-sizing: border-box; width: 100%;
   display: flex; align-items: center; gap: 6px;
   padding: 6px 8px 4px;
   /* 分组标题用官方专用的不透明实心底：sticky 悬停时滚过的行不会从它下面
      透出来，分组之间的边界也比半透明表面清楚。 */
   background: var(--dsw-alias-menu-group-header-fill, var(--dsw-alias-bg-overlay));
-  border-top: 1px solid var(--dsw-alias-border-l1);
+  border: 0; border-top: 1px solid var(--dsw-alias-border-l1);
   color: var(--dsw-alias-label-tertiary);
-  font-size: 11px; line-height: 16px;
+  font: inherit; font-size: 11px; line-height: 16px; text-align: left;
+  cursor: pointer;
 }
-.mss-group-name { color: var(--dsw-alias-label-primary); font-weight: 600; }
+.mss-group:hover { color: var(--dsw-alias-label-secondary); }
+.mss-group:focus-visible { outline: none; box-shadow: inset 0 0 0 1px var(--dsw-alias-border-l2); }
+.mss-group-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--dsw-alias-label-primary); font-weight: 600; }
+/* 折叠箭头：展开时朝下，收起时朝右。 */
+.mss-group-caret {
+  flex: 0 0 auto; width: 10px; height: 10px;
+  color: var(--dsw-alias-label-caption);
+  transition: transform 120ms ease;
+}
+.mss-group[data-collapsed] .mss-group-caret { transform: rotate(-90deg); }
+@media (prefers-reduced-motion: reduce) { .mss-group-caret { transition: none; } }
+/* 分组标题里的整行按钮不抢焦点顺序，键盘走列表本身。 */
+.mss-collapse-all {
+  display: flex; align-items: center; gap: 4px;
+  align-self: flex-end;
+  padding: 2px 8px; border: 0; border-radius: var(--dsw-radius-md);
+  background: transparent; color: var(--dsw-alias-label-secondary);
+  font: inherit; font-size: 11px; line-height: 18px; cursor: pointer;
+}
+.mss-collapse-all:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.mss-collapse-all:focus-visible { outline: none; box-shadow: inset 0 0 0 1px var(--dsw-alias-border-l2); }
 /* 没有背景模糊时，半透明表面会让页面透出来，因此退回不透明的 overlay 填充。 */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .mss-menu { background: var(--dsw-alias-bg-overlay); }
@@ -334,6 +364,16 @@ window.__ModuleLoader__.load({
       }))
     }
 
+    /** 分组标题右侧的折叠箭头；收起时由 CSS 旋转成朝右。 */
+    function CaretIcon() {
+      return h('svg', {
+        className: 'mss-group-caret', viewBox: '0 0 16 16', 'aria-hidden': true, focusable: false,
+      }, h('path', {
+        d: 'M4 6.5 8 10.5 12 6.5', fill: 'none', stroke: 'currentColor',
+        strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round',
+      }))
+    }
+
     /**
      * 当 composer 工具行宽度不足时，替代触发器文字显示的紧凑字形
      * （工具行会发布 `--dsh-composer-model-icon-display`）。
@@ -405,6 +445,8 @@ window.__ModuleLoader__.load({
       const [active, setActive] = useState(0)
       const [toast, setToast] = useState(null)
       const [pos, setPos] = useState(null)
+      // 已收起的分组 id。只影响渲染，不影响目录数据；搜索时自动全展开。
+      const [collapsed, setCollapsed] = useState(() => new Set())
 
       const rootRef = useRef(null)
       const triggerRef = useRef(null)
@@ -477,9 +519,36 @@ window.__ModuleLoader__.load({
         }
         return out
       }, [groups, trimmed])
+
+      // 有搜索词时强制展开：结果被折叠藏起来就没有意义了。
+      const searching = trimmed.length > 0
+      const isCollapsed = (groupId) => !searching && collapsed.has(groupId)
+      const anyExpanded = visible.some(group => !isCollapsed(group.id))
+      const allCollapsed = visible.length > 0 && !anyExpanded
+
+      const toggleGroup = (groupId) => {
+        setCollapsed((prev) => {
+          const next = new Set(prev)
+          if (next.has(groupId)) next.delete(groupId)
+          else next.add(groupId)
+          return next
+        })
+      }
+
+      const toggleAll = () => {
+        setCollapsed((prev) => {
+          // 全部已收起就全展开，否则全部收起。
+          if (visible.every(group => prev.has(group.id))) return new Set()
+          return new Set(visible.map(group => group.id))
+        })
+      }
+
+      // 折叠的分组不进入键盘导航与 activeIndex。
       const visibleFlat = useMemo(
-        () => visible.flatMap(group => group.models.map(model => ({ group, model }))),
-        [visible],
+        () => visible.flatMap(group => (isCollapsed(group.id)
+          ? []
+          : group.models.map(model => ({ group, model })))),
+        [visible, collapsed, searching],
       )
       const activeIndex = visibleFlat.length === 0 ? -1 : Math.min(Math.max(active, 0), visibleFlat.length - 1)
       const busy = state.pending !== null && state.pending !== undefined
@@ -546,6 +615,9 @@ window.__ModuleLoader__.load({
 
       const show = () => {
         setQuery('')
+        // 每次打开都恢复全展开：折叠状态只服务本次浏览，
+        // 而且这样"打开即定位到选中项"才能一定找到那一行。
+        setCollapsed(new Set())
         setActive(Math.max(0, currentIndex))
         setOpen(true)
         load()
@@ -622,6 +694,11 @@ window.__ModuleLoader__.load({
 
       const onKeyDown = (event) => {
         if (event.nativeEvent !== undefined && event.nativeEvent.isComposing === true) return
+        // 分组标题与"全部展开/收起"是独立按钮：让它们自己处理 Enter/Space，
+        // 不要在这里再当成"选中模型"处理。
+        const origin = event.target
+        if (origin instanceof Element
+          && (origin.classList.contains('mss-group') || origin.classList.contains('mss-collapse-all'))) return
         if (event.key === 'Escape' && open) {
           event.preventDefault()
           close(true)
@@ -685,7 +762,10 @@ window.__ModuleLoader__.load({
       const emptyNode = h('div', { className: 'mss-empty', role: 'status' },
         t(state.status === 'ready' && flat.length > 0 ? 'searchEmpty' : 'emptyModels'))
       const groupNodes = visible.map((group) => {
-        const rows = group.models.map((model) => {
+        const collapsedNow = isCollapsed(group.id)
+        // 收起时完全不渲染行：键盘导航与 activeIndex 也已排除它们，
+        // 两边必须一致，否则方向键会跳到看不见的行上。
+        const rows = collapsedNow ? null : group.models.map((model) => {
           const index = rowIndex
           rowIndex += 1
           const selected = now !== null && now.provider === group.id && now.model === model.id
@@ -712,17 +792,28 @@ window.__ModuleLoader__.load({
           }, copy, h('span', { className: 'mss-check' }, marker))
         })
         return h('div', { key: group.id },
-          h('div', { className: 'mss-group' },
-            h(Dot, { id: group.id }),
-            h('span', {
-              className: 'mss-group-name',
-              // 内联颜色，让可见性不依赖样式表
-              // 是否被（重）写：分组标题位于 sticky
-              // 覆盖层之后，某个与背景融合的 token 之前让"DeepSeek"
-              // 在实际里隐形过。var 回退覆盖两个主题。
-              style: { color: 'var(--dsw-alias-label-primary, #0f172a)', fontWeight: 600 },
-            }, group.name),
-            h('span', { className: 'mss-count' }, String(group.models.length))),
+          h('button', {
+            type: 'button',
+            className: 'mss-group',
+            // 分组标题本身是折叠开关；搜索期间强制展开，因此不可折叠。
+            'aria-expanded': !collapsedNow,
+            'aria-label': `${group.name}（${collapsedNow ? t('expandGroup') : t('collapseGroup')}）`,
+            title: collapsedNow ? t('expandGroup') : t('collapseGroup'),
+            disabled: searching,
+            ...(collapsedNow ? { 'data-collapsed': '' } : {}),
+            onClick: () => { toggleGroup(group.id) },
+          },
+          h(Dot, { id: group.id }),
+          h('span', {
+            className: 'mss-group-name',
+            // 内联颜色，让可见性不依赖样式表
+            // 是否被（重）写：分组标题位于 sticky
+            // 覆盖层之后，某个与背景融合的 token 之前让"DeepSeek"
+            // 在实际里隐形过。var 回退覆盖两个主题。
+            style: { color: 'var(--dsw-alias-label-primary, #0f172a)', fontWeight: 600 },
+          }, group.name),
+          h('span', { className: 'mss-count' }, String(group.models.length)),
+          h(CaretIcon)),
           rows)
       })
 
@@ -748,6 +839,15 @@ window.__ModuleLoader__.load({
         readOnly: busy,
         onChange: (event) => { setQuery(event.target.value); setActive(0) },
       })) : null
+      // 一键全部展开/收起：只在有多个分组、且不在搜索态时出现。
+      const collapseAllBlock = visible.length > 1 && !searching
+        ? h('button', {
+          type: 'button',
+          className: 'mss-collapse-all',
+          'aria-label': allCollapsed ? t('expandAll') : t('collapseAll'),
+          onClick: () => { toggleAll() },
+        }, allCollapsed ? t('expandAll') : t('collapseAll'))
+        : null
       const statusBlock = state.status === 'loading' ? h('div', { className: 'mss-status' }, t('loading')) : null
       const errorBlock = state.status === 'error' && state.error !== null && state.error !== undefined
         ? h('div', { className: 'mss-error' },
@@ -795,6 +895,7 @@ window.__ModuleLoader__.load({
       },
       effortBlock,
       searchBlock,
+      collapseAllBlock,
       statusBlock,
       errorBlock,
       failureBlocks,
