@@ -162,7 +162,10 @@ window.__ModuleLoader__.load({
 .mss-menu {
   position: fixed; z-index: 1100;
   display: flex; flex-direction: column;
-  width: max-content; min-width: min(260px, calc(100vw - 32px)); max-width: min(440px, calc(100vw - 32px));
+  /* 固定宽度（受屏幕限制）：否则"全部收起"后模型行消失，
+     max-content 的菜单会缩到 min-width，展开/收起时宽度跟着变。 */
+  width: min(440px, calc(100vw - 32px)); min-width: min(360px, calc(100vw - 32px));
+  max-width: min(440px, calc(100vw - 32px));
   max-height: min(380px, calc(100vh - 96px)); overflow: hidden;
   padding: 6px;
   /* 官方 popupSelect 卡片的表面：半透明填充 + 40px 背景模糊，
@@ -193,7 +196,7 @@ window.__ModuleLoader__.load({
   color: var(--dsw-alias-label-primary-foreground);
 }
 .mss-chip:disabled { color: var(--dsw-alias-label-dimmed); cursor: default; }
-.mss-search { display: flex; margin: 2px 0 4px; }
+.mss-search { display: flex; align-items: center; gap: 6px; margin: 2px 0 4px; }
 .mss-search input {
   flex: 1; min-width: 0; height: 28px; padding: 0 8px;
   border: 1px solid var(--dsw-alias-border-l1); border-radius: var(--dsw-radius-md);
@@ -228,9 +231,10 @@ window.__ModuleLoader__.load({
 .mss-group[data-collapsed] .mss-group-caret { transform: rotate(-90deg); }
 @media (prefers-reduced-motion: reduce) { .mss-group-caret { transition: none; } }
 /* 分组标题里的整行按钮不抢焦点顺序，键盘走列表本身。 */
+/* 全部展开/收起：放在搜索行右侧，不额外占一行、不撑宽菜单。 */
 .mss-collapse-all {
   display: flex; align-items: center; gap: 4px;
-  align-self: flex-end;
+  flex: 0 0 auto; white-space: nowrap;
   padding: 2px 8px; border: 0; border-radius: var(--dsw-radius-md);
   background: transparent; color: var(--dsw-alias-label-secondary);
   font: inherit; font-size: 11px; line-height: 18px; cursor: pointer;
@@ -830,17 +834,8 @@ window.__ModuleLoader__.load({
             onClick: () => { chooseEffort(choice.effort) },
           }, choice.label))),
       ]
-      const searchBlock = showSearch ? h('div', { className: 'mss-search' }, h('input', {
-        type: 'text',
-        role: 'searchbox',
-        value: query,
-        placeholder: t('searchPlaceholder'),
-        'aria-label': t('searchPlaceholder'),
-        readOnly: busy,
-        onChange: (event) => { setQuery(event.target.value); setActive(0) },
-      })) : null
       // 一键全部展开/收起：只在有多个分组、且不在搜索态时出现。
-      const collapseAllBlock = visible.length > 1 && !searching
+      const collapseAllButton = visible.length > 1 && !searching
         ? h('button', {
           type: 'button',
           className: 'mss-collapse-all',
@@ -848,6 +843,21 @@ window.__ModuleLoader__.load({
           onClick: () => { toggleAll() },
         }, allCollapsed ? t('expandAll') : t('collapseAll'))
         : null
+      // 按钮放进搜索行右侧：不额外占一行，也不撑宽菜单。
+      // 没有搜索框时单独一行，但宽度仍由菜单固定值决定，不受影响。
+      const searchBlock = showSearch
+        ? h('div', { className: 'mss-search' }, h('input', {
+          type: 'text',
+          role: 'searchbox',
+          value: query,
+          placeholder: t('searchPlaceholder'),
+          'aria-label': t('searchPlaceholder'),
+          readOnly: busy,
+          onChange: (event) => { setQuery(event.target.value); setActive(0) },
+        }), collapseAllButton)
+        : (collapseAllButton === null
+          ? null
+          : h('div', { className: 'mss-search' }, collapseAllButton))
       const statusBlock = state.status === 'loading' ? h('div', { className: 'mss-status' }, t('loading')) : null
       const errorBlock = state.status === 'error' && state.error !== null && state.error !== undefined
         ? h('div', { className: 'mss-error' },
@@ -895,7 +905,6 @@ window.__ModuleLoader__.load({
       },
       effortBlock,
       searchBlock,
-      collapseAllBlock,
       statusBlock,
       errorBlock,
       failureBlocks,
