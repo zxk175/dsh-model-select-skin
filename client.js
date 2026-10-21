@@ -707,8 +707,11 @@ window.__ModuleLoader__.load({
         if (row === null) return
         const view = scroller.getBoundingClientRect()
         const box = row.getBoundingClientRect()
+        // sticky 分组标题会贴在滚动容器顶部，把它的高度算进去，
+        // 否则第一条行会被标题遮住一截，看起来"还差一点才到第一个"。
+        const headerHeight = groupEl.querySelector('.mss-group')?.offsetHeight ?? 0
         const topInContent = scroller.scrollTop + (box.top - view.top - scroller.clientTop)
-        scroller.scrollTop = Math.max(0, topInContent - 4)
+        scroller.scrollTop = Math.max(0, topInContent - headerHeight - 4)
         setScrollTarget(null)
       }, [scrollTarget])
 
